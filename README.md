@@ -1,64 +1,35 @@
 # Signal-Processing-for-Stroke-EEG
+Reproducible EEG preprocessing pipeline for acute stroke motor imagery data ([Liu et al., 2024](https://doi.org/10.1038/s41597-023-02787-8)), producing both sensor-space epochs and spatially filtered, Euclidean-aligned epochs ready for machine learning and deep learning BCI classification.
 
 ## Author
 Dr. Giovanna Dal Rì, Medical Doctor and Biomedical Engineer
 
 ## Motivation
-This signal processing script was built in order to read EEG data from stroke patients. The final aim is to implement a Brain Computer Interface applied to stroke patients.
+Stroke-induced cortical lesions introduce substantial inter-subject and inter-trial amplitude variability, baseline drift, and ocular artifacts in electroencephalography (EEG) recordings. This modular preprocessing pipeline standardizes artifact rejection, spatial filtering, and covariance alignment for acute stroke motor imagery EEG to support robust Brain-Computer Interface (BCI) decoding.
+
+## Overview
+This repository processes raw BIDS-formatted `.edf` recordings from the Liu et al. (2024) acute stroke motor imagery dataset into ML/DL-ready `.fif` epoch files. For each subject, the pipeline outputs a continuous cleaned recording (`CleanEEG/`), sensor-space epochs (`UnfilteredCleanEpochs/`), spatially filtered and Euclidean-aligned epochs (`EpochsEEG/`), and an audit log (`preprocessing_summary.csv`) detailing retained trials and artifact metrics.
 
 ## Pipeline
-1. Load EEG data via MNE
-2. Detrending (remove slow drift trends)
-3. Bandpass filtering (8-30HZ)
-4. Interpolate invalid or empty channels
-5. Wavelet denoising (db4 wavelet)
-6. Set reference (CPz channel)
-7. Set montage (10-10 standard montage)
-8. ICA Artifact removal
-    - FP1, FP2 (frontal blink detectors)
-    - HEOL, HEOR (horizontal EOG detectors)
-9. Blink detection and removal (remaining on FP1 and FP2 after ICA), using 150 µV threshold
-10. Load events of interest
-11. Assign class labels
-12. Extract epochs of interest (from events of interest)
-13. Baseline correction and optimization
-14. Large Laplacian Filtering
-15. Matching Filtering
-
-## Description
-The script contains the signal processing of EEG data of stroke patients, contained in the dataset from Liu et al. (2024). The EEG data are loaded from a raw format and processed into a format ready to be read and used in the training and testing of a Machine Learning/Deep Learning algorithm for classification. The final aim is to implement a Brain Computer Interface able to process raw EEG data from stroke patients.
-
-The raw EEG data of all subjects are first loaded via MNE by defining the extraction parameters. During loading the raw EEG data go through signal processing. 
-
-Firstly, a linear detrending filter (polynomial order = 1) was applied, to remove slow drift trends. Moreover, a bandpass filter was applied between 8 and 30Hz.
-
-Invalid or empty channels were detected and interpolated.
-
-A wavelet denoising was applied for db4.
-
-The reference was set to the CPz channel and the montage was set to the standard 10-10 montage, as stated by the database documentation. 
-
-
-
-
-8. ICA Artifact removal
-    - FP1, FP2 (frontal blink detectors)
-    - HEOL, HEOR (horizontal EOG detectors)
-9. Blink detection and removal (remaining on FP1 and FP2 after ICA), using 150 µV threshold
-10. Load events of interest
-11. Assign class labels
-12. Extract epochs of interest (from events of interest)
-13. Baseline correction and optimization
-14. Large Laplacian Filtering
-15. Matching Filtering
-
+1. Data Loading & Cohort Filtering: Load BIDS-formatted `.edf` recordings via MNE-Python (500 Hz). Exclude derived/duplicate subjects (`sub-05`, `sub-15`, `sub-49`, which duplicate `sub-04`, `sub-11`, and `sub-47`) by default to prevent data leakage.
+2. Channel Cleaning: Drop the unnamed/empty trailing EDF channel (`''`) prior to spatial coordinate assignment.
+3. Referencing & Montage: Re-reference EEG channels to `CPz`, mark `HEOL` and `HEOR` as EOG channels, and apply the standard 10-10 electrode coordinates (`standard_1005`).
+4. Detrending & Wideband Filtering: Apply linear detrending (`polyorder=1`) to remove slow baseline drifts followed by a zero-phase FIR bandpass filter (`1.0–40.0 Hz`) for ICA stability.
+5. Ocular Artifact Removal (ICA): Fit FastICA (`random_state=42`) and automatically identify and remove blink and horizontal eye-movement components correlated with frontal (`FP1`, `FP2`) and EOG (`HEOL`, `HEOR`) channels.
+6. Residual Blink Quality Control: Quantify any residual high-amplitude ocular deflections (`> 150 µV`) on `FP1` and `FP2` and log metrics to `preprocessing_summary.csv`.
+7. Motor Imagery Bandpass Filtering: Apply a zero-phase FIR bandpass filter (`8.0–30.0 Hz`) to isolate sensorimotor mu ($\mu$) and beta ($\beta$) rhythms.
+8. Event Extraction & Epoching: Load motor imagery events (`value == 2`) from `*_events.tsv`, assign binary class labels (`left` vs. `right`), extract `[-0.5, 4.0] s` epochs, apply baseline correction (`[-0.5, 0.0] s`), crop to the `[0.0, 4.0] s` active imagery window, and reject trials exceeding `150 µV` peak-to-peak amplitude.
+9. Dual Output & Spatial Alignment:
+   - Sensor-Space Checkpoint (`*_sensor-epo.fif`): Clean, baseline-corrected epochs saved in Volts for baseline models and ablation studies.
+   - Spatially Filtered & Aligned Checkpoint (`*_csd_ea-epo.fif`): Apply Surface Laplacian (Current Source Density, CSD) to sharpen spatial resolution, followed by unsupervised Euclidean Alignment (EA) to whiten trial covariance matrices across subjects.
 
 ## Tech Stack
 * Language: Python 3.10+
-* Libraries: see requirements.txt
+* Dependencies: See `requirements.txt` (`mne`, `numpy`, `scipy`, `pandas`, `scikit-learn`)
 
 ## Materials
-* EEG data is proprietary of Liu et al, (2024), so it cannot be published in this repository. It can be easily found online.
+* Dataset: Liu, H., Wei, P., Wang, H., et al. (2024). *An EEG motor imagery dataset for brain computer interface in acute stroke patients*. Scientific Data, 11, 131. https://doi.org/10.1038/s41597-023-02787-8
+* Duplicate Subject Exclusion: In the public release, subjects `05`, `15`, and `49` are derived duplicates of subjects `04`, `11`, and `47`. They are excluded (`exclude_derived=True`) to avoid bias in cross-subject evaluation.
 
 ## License
 This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
