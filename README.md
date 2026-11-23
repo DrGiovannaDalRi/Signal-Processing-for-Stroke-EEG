@@ -11,9 +11,9 @@ Stroke-induced cortical lesions introduce substantial inter-subject and inter-tr
 This repository processes raw BIDS-formatted `.edf` recordings from the Liu et al. (2024) acute stroke motor imagery dataset into ML/DL-ready `.fif` epoch files. For each subject, the pipeline outputs a continuous cleaned recording (`CleanEEG/`), sensor-space epochs (`UnfilteredCleanEpochs/`), spatially filtered and Euclidean-aligned epochs (`EpochsEEG/`), and an audit log (`preprocessing_summary.csv`) detailing retained trials and artifact metrics.
 
 ## Pipeline
-1. Data Loading & Cohort Filtering: Load BIDS-formatted `.edf` recordings via MNE-Python (500 Hz). Exclude derived/duplicate subjects (`sub-05`, `sub-15`, `sub-49`, which duplicate `sub-04`, `sub-11`, and `sub-47`) by default to prevent data leakage.
+1. Data Loading & Cohort Filtering: Load `.edf` recordings via MNE-Python (500 Hz). Exclude derived/duplicate subjects (`sub-05`, `sub-15`, `sub-49`, which duplicate `sub-04`, `sub-11`, and `sub-47`) by default to prevent data leakage.
 2. Channel Cleaning: Drop the unnamed/empty trailing EDF channel (`''`) prior to spatial coordinate assignment.
-3. Referencing & Montage: Re-reference EEG channels to `CPz`, mark `HEOL` and `HEOR` as EOG channels, and apply the standard 10-10 electrode coordinates (`standard_1005`).
+3. Referencing & Montage: Re-reference EEG channels to `CPz`, mark `HEOL` and `HEOR` as EOG channels, and apply the standard 10-10 electrode coordinates (`standard_1005`). After referencing, `CPz` was dropped due to being a flat channel.
 4. Detrending & Wideband Filtering: Apply linear detrending (`polyorder=1`) to remove slow baseline drifts followed by a zero-phase FIR bandpass filter (`1.0–40.0 Hz`) for ICA stability.
 5. Ocular Artifact Removal (ICA): Fit FastICA (`random_state=42`) and automatically identify and remove blink and horizontal eye-movement components correlated with frontal (`FP1`, `FP2`) and EOG (`HEOL`, `HEOR`) channels.
 6. Residual Blink Quality Control: Quantify any residual high-amplitude ocular deflections (`> 150 µV`) on `FP1` and `FP2` and log metrics to `preprocessing_summary.csv`.
@@ -24,7 +24,7 @@ This repository processes raw BIDS-formatted `.edf` recordings from the Liu et a
    - Spatially Filtered & Aligned Checkpoint (`*_csd_ea-epo.fif`): Apply Surface Laplacian (Current Source Density, CSD) to sharpen spatial resolution, followed by unsupervised Euclidean Alignment (EA) to whiten trial covariance matrices across subjects.
 
 ## Tech Stack
-* Language: Python 3.10+
+* Language: Python 3.9+
 * Dependencies: See `requirements.txt` (`mne`, `numpy`, `scipy`, `pandas`, `scikit-learn`)
 
 ## Materials
@@ -39,7 +39,7 @@ Under this license, you are free to use, modify, and distribute the code for aca
 ## Citation
 If you use this code, the signal processing part or any other part, please cite it as follows:
 
-> Dal Rì, 2026. *Signal Processing for Stroke EEG* (Version 1.0.0) [Computer software]. GitHub. [https://github.com/DrGiovannaDalRi/Automatic-Bibliometric-Study](https://github.com/DrGiovannaDalRi/Signal-Processing-for-Stroke-EEG)
+> Dal Rì, 2026. *Signal Processing for Stroke EEG* (Version 1.0.0) [Computer software]. GitHub. (https://github.com/DrGiovannaDalRi/Signal-Processing-for-Stroke-EEG)
 
 **BibTeX:**
 ```bibtex
@@ -48,5 +48,5 @@ If you use this code, the signal processing part or any other part, please cite 
   title = {Signal Processing for Stroke EEG},
   year = {2026},
   version = {v1.0.0},
-  url = {[[(https://github.com/DrGiovannaDalRi/Automatic-Bibliometric-Study)](https://github.com/DrGiovannaDalRi/Signal-Processing-for-Stroke-EEG)]
+  url = {(https://github.com/DrGiovannaDalRi/Signal-Processing-for-Stroke-EEG)
 }
