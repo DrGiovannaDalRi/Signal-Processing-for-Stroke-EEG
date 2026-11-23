@@ -22,6 +22,26 @@ This repository processes raw BIDS-formatted `.edf` recordings from the Liu et a
 9. Dual Output & Spatial Alignment:
    - Sensor-Space Checkpoint (`*_sensor-epo.fif`): Clean, baseline-corrected epochs saved in Volts for baseline models and ablation studies.
    - Spatially Filtered & Aligned Checkpoint (`*_csd_ea-epo.fif`): Apply Surface Laplacian (Current Source Density, CSD) to sharpen spatial resolution, followed by unsupervised Euclidean Alignment (EA) to whiten trial covariance matrices across subjects.
+  
+## Results
+The figures below illustrate the pipeline's intermediate and final outputs for a representative subject (with no residual blink artifact after ICA and no trials rejected). They are included for visual validation of the preprocessing stages.
+
+### Trial structure (sensor space)
+
+<img width="1280" height="960" alt="sub-04_right_trial_image" src="https://github.com/user-attachments/assets/1a20489a-6b1d-42f6-b22d-18c42c913af7" />
+<img width="1280" height="960" alt="sub-04_left_trial_image" src="https://github.com/user-attachments/assets/97c4ebef-6bf3-4f2a-9b95-f150c90c7f38" />
+
+These trial x time images show the mean signal over C3/C4 across all 20 trials of each class, after band-pass filtering (8-30 Hz) and ICA-based ocular artifact removal. The amplitude range (approximately ±10-15 µV) is consistent with clean, artifact-free sensorimotor EEG.
+
+### Effect of spatial filtering and alignment
+
+<img width="2400" height="800" alt="sub-04_left_sensor_vs_csd" src="https://github.com/user-attachments/assets/39100f9f-bcc9-472c-a854-a625c7f371bf" />
+
+This comparison shows the grand-average signal before (sensor space, µV, on the left) and after (Current Source Density + Euclidean Alignment, on the right) spatial processing. 
+
+During validation, inspecting this comparison surfaced a methodological issue worth noting explicitly: the surface Laplacian (CSD) transform introduces an exact rank deficiency in the per-subject trial covariance matrix — a structural property of the transform on a 27-channel montage, not numerical noise — which caused Euclidean Alignment's whitening step to disproportionately amplify that single near-zero-variance direction. This was diagnosed by inspecting the eigenvalue spectrum of the covariance matrix before and after CSD, and resolved by replacing the original fixed-constant regularization with an eigenvalue-floored pseudo-inverse (eigenvalues below a fraction of the matrix's largest eigenvalue are floored before inversion), scaled relative to each subject's own data rather than a fixed absolute constant. 
+
+The CSD output appears visually denser than the sensor-space trace, independent of the unit change from µV to mV/m². This reflects the surface Laplacian's intended behavior of emphasizing local, high-spatial-frequency structure rather than a residual artifact.
 
 ## Tech Stack
 * Language: Python 3.9+
