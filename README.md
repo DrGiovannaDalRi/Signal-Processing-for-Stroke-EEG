@@ -27,17 +27,25 @@ This repository processes raw BIDS-formatted `.edf` recordings from the Liu et a
 The figures below illustrate the pipeline's intermediate and final outputs for a representative subject (with no residual blink artifact after ICA and no trials rejected). They are included for visual validation of the preprocessing stages.
 
 ### Trial structure (sensor space)
-
-<img width="1280" height="960" alt="sub-04_right_trial_image" src="https://github.com/user-attachments/assets/1a20489a-6b1d-42f6-b22d-18c42c913af7" />
-<img width="1280" height="960" alt="sub-04_left_trial_image" src="https://github.com/user-attachments/assets/97c4ebef-6bf3-4f2a-9b95-f150c90c7f38" />
-
 These trial x time images show the mean signal over C3/C4 across all 20 trials of each class, after band-pass filtering (8-30 Hz) and ICA-based ocular artifact removal. The amplitude range (approximately ±10-15 µV) is consistent with clean, artifact-free sensorimotor EEG.
 
+Right hand imagery is shown in the following image.
+<div align=center>
+<img width="800" height="610" alt="sub-04_right_trial_image" src="https://github.com/user-attachments/assets/1a20489a-6b1d-42f6-b22d-18c42c913af7" />
+</div>
+
+
+Left hand imagery is shown in the following image.
+<div align=center>
+<img width="800" height="610" alt="sub-04_left_trial_image" src="https://github.com/user-attachments/assets/97c4ebef-6bf3-4f2a-9b95-f150c90c7f38" />
+</div>
+
 ### Effect of spatial filtering and alignment
+The following image shows the comparison between the grand-average signal before (sensor space, µV, on the left) and after (Current Source Density + Euclidean Alignment, on the right) spatial processing. 
 
-<img width="2400" height="800" alt="sub-04_left_sensor_vs_csd" src="https://github.com/user-attachments/assets/39100f9f-bcc9-472c-a854-a625c7f371bf" />
-
-This comparison shows the grand-average signal before (sensor space, µV, on the left) and after (Current Source Density + Euclidean Alignment, on the right) spatial processing. 
+<div align=center>
+<img width="900" height="300" alt="sub-04_left_sensor_vs_csd" src="https://github.com/user-attachments/assets/39100f9f-bcc9-472c-a854-a625c7f371bf" />
+</div>
 
 During validation, inspecting this comparison surfaced a methodological issue worth noting explicitly: the surface Laplacian (CSD) transform introduces an exact rank deficiency in the per-subject trial covariance matrix — a structural property of the transform on a 27-channel montage, not numerical noise — which caused Euclidean Alignment's whitening step to disproportionately amplify that single near-zero-variance direction. This was diagnosed by inspecting the eigenvalue spectrum of the covariance matrix before and after CSD, and resolved by replacing the original fixed-constant regularization with an eigenvalue-floored pseudo-inverse (eigenvalues below a fraction of the matrix's largest eigenvalue are floored before inversion), scaled relative to each subject's own data rather than a fixed absolute constant. 
 
